@@ -1,19 +1,70 @@
 rm(list = ls())
 T1<-Sys.time()
 
-# Load Libraries
+# Required Libraries
 require('sqldf')
 require('caTools')
 require('data.table')
 require('caret')
 require('ggplot2')
+require('e1071')
 
 # set your directory
 setwd("/Users/dipeshsurana/Documents/Machine Learning")
 
 # Load Data
 data = read.csv('Gold.csv')
+
+# display first 20 rows of data
+head(data, n=20)
+
+# dsiplay the dimensions of your data
+dim(data)
+
+# list types for each attribute
+sapply(data, class)
+
+# Creating Target variable for regression
 data$Nextopen = shift(data$Open,n=1,fill=0,type="lead")
+
+# Creating Target variable for cliassification
+data$Nextdirection = ifelse(data$Nextopen>data$Open,"Bull","Bear")
+
+# list types for each attribute including target variables
+sapply(data, class)
+
+#Exploration of Data
+pairs(training_set)
+
+# distribution of class variable for classification 
+y = data$Nextdirection
+cbind(freq=table(y), percentage=prop.table(table(y))*100)
+
+# distribution of class variable for regression using histogram
+x = data$Nextopen
+hist(x)
+
+# summarize the dataset
+summary(data)
+
+# calculate standard deviation for all attributes
+sapply(data[,2:8], sd)
+
+# calculate skewness for each variable
+skew = apply(data[,2:8], 2, skewness)
+# display skewness, larger/smaller deviations from 0 show more skew
+print(skew)
+
+# calculate a correlation matrix for numeric variables
+correlations <- cor(data[,2:8])
+# display the correlation matrix
+print(correlations)
+
+# plot the price curve
+plot(c(data$Date,as.numeric(data$Open)),type='l')
+
+# Dropping Nextdirection variable for regression model
+dataset = subset(data,select=-c(Nextdirection))
 dataset = data[,-1]
 
 # Splitting the dataset into the Training set and Test set 
@@ -21,9 +72,6 @@ set.seed(123)
 split = sample.split(dataset$Nextopen, SplitRatio = 0.8) 
 training_set = subset(dataset, split == TRUE) 
 test_set = subset(dataset, split == FALSE)
-
-#Exploration of Data
-pairs(training_set)
 
 # Build linear regression model
 regressor = lm(formula = Nextopen ~ ., 
@@ -57,7 +105,3 @@ AIC(regressor_new)
 BIC(regressor_new)
 RMSE(y_pred,test_set$Nextopen)
 cor(AP)
-
-# Monitor
-predict(regressor_new,data.frame(Open=1296.35,High=1297.75,Close=1295.55))
-
